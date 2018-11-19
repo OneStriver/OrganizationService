@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="UserMapper">
+
+	<resultMap type="user" id="userAndRoleResultMap">
+		<id column="USER_ID" property="USER_ID"/>
+		<result column="USERNAME" property="USERNAME"/>
+		<result column="NICKNAME" property="NICKNAME"/>
+		<result column="PASSWORD" property="PASSWORD"/>
+		<result column="IP" property="IP"/>
+		<result column="LAST_LOGIN" property="LAST_LOGIN"/>
+		<result column="STATUS" property="STATUS"/>
+		<result column="BZ" property="BZ"/>
+		<association property="role" column="ROLE_ID" javaType="role">
+			<id column="ROLE_ID" property="ROLE_ID"/>
+			<result column="ROLE_NAME" property="ROLE_NAME"/>
+			<result column="ROLE_RIGHTS" property="RIGHTS"/>
+		</association>
+	</resultMap>
+	
+	<resultMap type="user" id="userResultMap">
+		<id column="USER_ID" property="USER_ID"/>
+		<result column="USERNAME" property="USERNAME"/>
+		<result column="NICKNAME" property="NICKNAME"/>
+		<result column="PASSWORD" property="PASSWORD"/>
+		<result column="IP" property="IP"/>
+		<result column="LAST_LOGIN" property="LAST_LOGIN"/>
+		<result column="STATUS" property="STATUS"/>
+		<result column="BZ" property="BZ"/>
+		<result column="ROLE_ID" property="ROLE_ID"/>
+	</resultMap>
+	
+	<!--表名 -->
+	<sql id="userTableName">
+		OrganizationService.SYS_USER
+	</sql>
+	<sql id="roleTableName">
+		OrganizationService.SYS_ROLE
+	</sql>
+	
+	<!-- 登录判断  -->
+	<select id="getUserInfo" parameterType="pageData" resultType="pageData">
+		select 
+			USER_ID,
+			USERNAME,
+			NICKNAME,
+			PASSWORD,
+			ROLE_ID,
+			LAST_LOGIN,
+			IP,
+			STATUS,
+			BZ
+		from
+			<include refid="userTableName"></include>
+		where 1=1
+		<if test="USERNAME!=null and PASSWORD!=null">
+			and USERNAME = #{USERNAME} 
+			and PASSWORD=#{PASSWORD}
+		</if>
+		<if test="USER_ID!=null and USER_ID>0">
+			and USER_ID = #{USER_ID}
+		</if>
+	</select>
+	
+	<!-- 更新登录时间和IP地址 -->
+	<update id="updateLastLogin" parameterType="pageData" >
+		update
+			<include refid="userTableName"></include>
+		set 
+			LAST_LOGIN = #{LAST_LOGIN},
+			IP = #{IP} 
+		where 
+			USER_ID = #{USER_ID}
+	</update>
+	
+	<!-- 通过用户ID获取用户信息和角色信息 -->
+	<select id="getUserAndRoleById" parameterType="Integer" resultMap="userAndRoleResultMap">
+		select  u.USER_ID,
+				u.USERNAME,
+				u.NICKNAME,
+				u.PASSWORD,
+				u.LAST_LOGIN,
+				u.IP,
+				u.STATUS,
+				u.BZ,
+				r.ROLE_ID,
+				r.ROLE_NAME,
+				r.RIGHTS as ROLE_RIGHTS 
+		from 
+			<include refid="userTableName"></include> u 
+		left join 
+			<include refid="roleTableName"></include> r 
+		on 
+			u.ROLE_ID=r.ROLE_ID 
+		where 
+			u.STATUS=0 
+			and u.USER_ID=#{USER_ID}
+	</select>
+	
+	<!-- 通过USERNAME获取数据 -->
+	<select id="findByUsername" parameterType="pageData" resultType="pageData" >
+		select 
+			USER_ID,
+			USERNAME,
+			NICKNAME,
+			PASSWORD,
+			ROLE_ID,
+			LAST_LOGIN,
+			IP,
+			STATUS,
+			BZ
+		from 
+			<include refid="userTableName"></include>
+		where 
+			USERNAME = #{USERNAME}
+	</select>
+	
+	<!-- 列出某角色下的所有用户 -->
+	<select id="listAllUserByRoldId"  parameterType="pageData" resultType="pageData" >
+		select 
+			USER_ID
+		from 
+			<include refid="userTableName"></include>
+		where 
+			ROLE_ID = #{ROLE_ID}
+	</select>
+	
+	<!-- 统计数据库中所有的用户  -->
+	<select id="countAllUser"  parameterType="pageData" resultType="pageData" >
+		select 
+			count(USER_ID) as allUserCount
+		from 
+			<include refid="userTableName"></include>
+	</select>
+	
+	<!-- 
+		用户列表 查看除了admin用户之外的用户
+		and u.USERNAME != 'admin'
+		and (r.PARENT_ID = 1 or r.PARENT_ID = 2)
+	-->
+	<select id="userlistPage" parameterType="page" resultMap="userAndRoleResultMap" >
+		select  
+			u.USER_ID,
+			u.USERNAME,
+			u.NICKNAME,
+			u.PASSWORD,
+			u.LAST_LOGIN,
+			u.IP,
+			u.STATUS,
+			u.BZ,
+			r.ROLE_ID,
+			r.ROLE_NAME
+		from 
+			<include refid="userTableName"></include> u, 
+			<include refid="roleTableName"></include> r 
+		where 
+			u.ROLE_ID = r.ROLE_ID
+			and r.PARENT_ID = 2
+		<if test="pageData.keywords!= null and pageData.keywords != ''"><!-- 关键词检索 -->
+			and
+			(
+			 u.USERNAME LIKE CONCAT(CONCAT('%', #{pageData.keywords}),'%')
+			 or
+			 u.NICKNAME LIKE CONCAT(CONCAT('%', #{pageData.keywords}),'%')
+			 or
+			 r.ROLE_NAME LIKE CONCAT(CONCAT('%', #{pageData.keywords}),'%')
+			)
+		</if>
+		<if test="pageData.ROLE_ID != null and pageData.ROLE_ID != ''"><!-- 角色检索 -->
+			and u.ROLE_ID=#{pageData.ROLE_ID} 
+		</if>
+		<if test="pageData.lastLoginStart!=null and pageData.lastLoginStart!=''"><!-- 登录时间检索 -->
+			and u.LAST_LOGIN &gt;= #{pageData.lastLoginStart} 
+		</if>
+		<if test="pageData.lastLoginEnd!=null and pageData.lastLoginEnd!=''"><!-- 登录时间检索 -->
+			and u.LAST_LOGIN &lt;= #{pageData.lastLoginEnd} 
+		</if>
+		order by u.LAST_LOGIN desc
+	</select>
+	
+	<!-- 通过user_id获取数据 -->
+	<select id="findById" parameterType="pageData" resultType="pageData" >
+		select 
+			USER_ID,
+			USERNAME,
+			NICKNAME,
+			PASSWORD,
+			ROLE_ID,
+			LAST_LOGIN,
+			IP,
+			STATUS,
+			BZ
+		from 
+			<include refid="userTableName"></include>
+		where 
+			USER_ID = #{USER_ID}
+	</select>
+	
+	<!-- 新增用户 -->
+	<insert id="saveU" parameterType="pageData" >
+		insert into 
+		<include refid="userTableName"></include>
+		(
+			USER_ID,
+			USERNAME,
+			NICKNAME,
+			PASSWORD,
+			ROLE_ID,
+			LAST_LOGIN,
+			IP,
+			STATUS,
+			BZ
+		) values (
+			#{USER_ID},
+			#{USERNAME},
+			#{NICKNAME},
+			#{PASSWORD},
+			#{ROLE_ID},
+			#{LAST_LOGIN},
+			#{IP},
+			#{STATUS},
+			#{BZ}
+		)
+	</insert>
+	
+	<!-- 修改 -->
+	<update id="editU" parameterType="pageData" >
+		update  
+			<include refid="userTableName"></include>
+		set 	
+			NICKNAME 				= #{NICKNAME}
+			,ROLE_ID 				= #{ROLE_ID}
+			,BZ						= #{BZ}
+			<if test="PASSWORD != null and PASSWORD != ''">
+			,PASSWORD				= #{PASSWORD}
+			</if>
+		where 
+			USER_ID = #{USER_ID}
+	</update>
+	
+	<!-- 删除用户 -->
+	<delete id="deleteU" parameterType="pageData" flushCache="false">
+		delete from 
+			<include refid="userTableName"></include>
+		where 
+			USER_ID = #{USER_ID}
+	</delete>
+	
+	<!-- 批量删除用户 -->
+	<delete id="deleteAllU" parameterType="String" >
+		delete from 
+			<include refid="userTableName"></include>
+		where 
+			USER_ID in
+  			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                  #{item}
+             </foreach>
+	</delete>
+	
+	<!-- 修改 -->
+	<update id="updateLoginUserPassword" parameterType="pageData" >
+		update  
+			<include refid="userTableName"></include>
+		set
+			<if test="PASSWORD != null and PASSWORD != ''">
+			PASSWORD				= #{PASSWORD}
+			</if>
+		where 
+			USER_ID = #{USER_ID}
+	</update>
+	
+	<!-- 获取总数 -->
+	<select id="getUserCount" parameterType="pageData" resultType="pageData">
+		select 
+			count(USER_ID) userCount
+		from 
+			<include refid="userTableName"></include>
+	</select>
+	
+</mapper>

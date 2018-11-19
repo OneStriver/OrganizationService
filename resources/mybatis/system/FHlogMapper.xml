@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="FHlogMapper">
+
+	<resultMap type="logRecord" id="logResultMap">
+		<id column="FHLOG_ID" property="FHLOG_ID" />
+		<result column="USERNAME" property="USERNAME" />
+		<result column="CONTENT" property="CONTENT" />
+		<result column="CZTIME" property="CZTIME" />
+	</resultMap>
+
+	<!--表名 -->
+	<sql id="tableName">
+		OrganizationService.SYS_FHLOG
+	</sql>
+
+	<!-- 字段 -->
+	<sql id="Field">
+		FHLOG_ID,
+		USERNAME,
+		CZTIME,
+		CONTENT
+	</sql>
+
+	<!-- 字段值 -->
+	<sql id="FieldValue">
+		#{FHLOG_ID},
+		#{USERNAME},
+		#{CZTIME},
+		#{CONTENT}
+	</sql>
+
+	<!-- 新增 -->
+	<insert id="saveLogRecord" parameterType="pageData">
+		insert into
+			<include refid="tableName"></include>
+		(
+			<include refid="Field"></include>
+		) 
+		values (
+			<include refid="FieldValue"></include>
+		)
+	</insert>
+	
+	<!-- 统计日志总数 -->
+	<select id="countLogRecord" parameterType="pageData" resultType="pageData">
+		select 
+			count(*) as logRecordCount 
+		from 
+			<include refid="tableName"></include>
+	</select>
+
+	<!-- 分页(条件)查询日志数据 -->
+	<select id="listLogRecord" parameterType="page" resultMap="logResultMap">
+		select
+		<include refid="Field"></include>
+		from
+		<include refid="tableName"></include>
+		where 1=1
+		<if test="pageData.keywords!= null and pageData.keywords != ''"><!-- 关键词检索 -->
+			and
+			(
+			USERNAME LIKE CONCAT(CONCAT('%', #{pageData.keywords}),'%')
+			or
+			CONTENT LIKE CONCAT(CONCAT('%', #{pageData.keywords}),'%')
+			)
+		</if>
+		<if test="pageData.lastStart!=null and pageData.lastStart!=''"><!-- 开始时间检索 -->
+			and CZTIME &gt;= #{pageData.lastStart}
+		</if>
+		<if test="pageData.lastEnd!=null and pageData.lastEnd!=''"><!-- 结束时间检索 -->
+			and CZTIME &lt;= #{pageData.lastEnd}
+		</if>
+			order by CZTIME desc
+		<if test="pageSize!=0">
+			limit #{currentStartIndex},#{pageSize}
+		</if>
+	</select>
+
+	<!-- 单个删除日志数据 -->
+	<delete id="deleteLogRecord" parameterType="pageData">
+		delete from
+		<include refid="tableName"></include>
+		where
+		FHLOG_ID = #{FHLOG_ID}
+	</delete>
+
+	<!-- 批量删除日志数据 -->
+	<delete id="deleteBatchLogRecord" parameterType="String">
+		delete from
+		<include refid="tableName"></include>
+		where
+		FHLOG_ID in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+
+</mapper>

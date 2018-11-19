@@ -1,0 +1,13 @@
+程序提供接口需要满足:
+1.请求路径是以 /RemoteCall 结尾
+2.在ApplicationContext-shiro.xml配置文件中配置路径
+
+菜单按钮对应的ID值定义:
+添加			1
+批量添加		2
+修改			3
+批量修改		4
+删除			5
+批量删除		6
+导入Excel	7
+导出Excel	8	

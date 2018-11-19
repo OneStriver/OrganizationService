@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ButtonRightMapper">
+
+	<resultMap type="buttonRight" id="buttonRightResultMap">
+		<id column="id" property="id"/>
+		<result column="roleId" property="roleId"/>
+		<result column="roleName" property="roleName"/>
+		<result column="menuId" property="menuId"/>
+		<result column="menuName" property="menuName"/>
+		<result column="buttonId" property="buttonId"/>
+		<result column="buttonName" property="buttonName"/>
+		<result column="status" property="status"/>
+	</resultMap>
+	
+	<!-- 根据菜单ID获取菜单中的按钮 -->
+	<select id="getButtonRightByMenuId" parameterType="pageData" resultMap="buttonRightResultMap">
+		select 
+			button.id,
+			role.ROLE_ID as roleId,
+			role.ROLE_NAME as roleName,
+			menu.MENU_ID as menuId,
+			menu.MENU_NAME as menuName,
+			buttonDict.id buttonId,
+			buttonDict.name buttonName,
+			button.status
+		from
+			OrganizationService.sys_button button
+		join 
+			OrganizationService.sys_role role
+		on
+			button.roleId = role.ROLE_ID
+		join 
+			OrganizationService.sys_menu menu
+		on
+			button.menuId = menu.MENU_ID
+		join 
+			OrganizationService.sys_buttondict buttonDict
+		on
+			button.buttonId = buttonDict.id
+		where
+			menu.MENU_ID = #{menuId}
+	</select>
+	
+	<!-- 根据菜单ID获取菜单中的按钮 -->
+	<select id="getButtonRightByRoleIdAndMenuId" parameterType="pageData" resultMap="buttonRightResultMap">
+		select 
+			button.id,
+			role.ROLE_ID as roleId,
+			role.ROLE_NAME as roleName,
+			menu.MENU_ID as menuId,
+			menu.MENU_NAME as menuName,
+			buttonDict.id buttonId,
+			buttonDict.name buttonName,
+			button.status
+		from
+			OrganizationService.sys_button button
+		join 
+			OrganizationService.sys_role role
+		on
+			button.roleId = role.ROLE_ID
+		join 
+			OrganizationService.sys_menu menu
+		on
+			button.menuId = menu.MENU_ID
+		join 
+			OrganizationService.sys_buttondict buttonDict
+		on
+			button.buttonId = buttonDict.id
+		where
+			role.ROLE_ID = #{roleId}
+			and
+			menu.MENU_ID = #{menuId}
+	</select>
+	
+	<select id="countAllButtonRights" parameterType="pageData" resultType="pageData">
+		select 
+			count(button.id) as allMenuButtonCount
+		from
+			OrganizationService.sys_button button
+	</select>
+	
+	<select id="countOptionsButtonRights" parameterType="pageData" resultType="pageData">
+		select 
+			count(button.id) as menuButtonCount
+		from
+			OrganizationService.sys_button button
+		join 
+			OrganizationService.sys_role role
+		on
+			button.roleId = role.ROLE_ID
+		join 
+			OrganizationService.sys_menu menu
+		on
+			button.menuId = menu.MENU_ID
+		join 
+			OrganizationService.sys_buttondict buttonDict
+		on
+			button.buttonId = buttonDict.id
+		where
+			1=1
+			<if test="roleId != null and roleId != 0">
+				and role.ROLE_ID = #{roleId}
+			</if>
+			<if test="menuId != null and menuId != 0">
+				and menu.MENU_ID = #{menuId}
+			</if>
+	</select>
+	
+	<!-- 条件获取按钮权限 -->
+	<select id="listOptionsButtonRights" parameterType="page" resultMap="buttonRightResultMap">
+		select 
+			button.id,
+			role.ROLE_ID as roleId,
+			role.ROLE_NAME as roleName,
+			menu.MENU_ID as menuId,
+			menu.MENU_NAME as menuName,
+			buttonDict.id buttonId,
+			buttonDict.name buttonName,
+			button.status
+		from
+			OrganizationService.sys_button button
+		join 
+			OrganizationService.sys_role role
+		on
+			button.roleId = role.ROLE_ID
+		join 
+			OrganizationService.sys_menu menu
+		on
+			button.menuId = menu.MENU_ID
+		join 
+			OrganizationService.sys_buttondict buttonDict
+		on
+			button.buttonId = buttonDict.id
+		where
+			1=1
+			<if test="pageData.roleId != null and pageData.roleId != 0">
+				and role.ROLE_ID = #{pageData.roleId}
+			</if>
+			<if test="pageData.menuId != null and pageData.menuId != 0">
+				and menu.MENU_ID = #{pageData.menuId}
+			</if>
+		<if test="pageSize!=0">
+			limit #{currentStartIndex},#{pageSize}
+		</if>
+	</select>
+	
+	<select id="listAllSubMenuButton" parameterType="pageData" resultType="menuButton">
+		select
+			buttondict.id,
+			buttondict.name
+		from
+			OrganizationService.sys_buttondict buttondict
+		order by
+			buttondict.id
+	</select>
+	
+	<insert id="addButtonRights" parameterType="pageData">
+		insert into
+			OrganizationService.sys_button
+		(
+			id,roleId,menuId,buttonId,status
+		)
+		values(
+			#{buttonRight.id},
+			#{buttonRight.roleId},
+			#{buttonRight.menuId},
+			#{buttonRight.buttonId},
+			#{buttonRight.status}
+		)
+	</insert>
+	
+	<update id="updateButtonRights" parameterType="pageData">
+		update
+			OrganizationService.sys_button
+		set
+			roleId = #{buttonRight.roleId}
+			,menuId = #{buttonRight.menuId}
+			,buttonId = #{buttonRight.buttonId}
+			<if test="status !=null">
+				,status = #{buttonRight.status}
+			</if>
+		where
+			id = #{buttonRight.id}
+	</update>
+	
+	<delete id="deleteButtonRights" parameterType="pageData">
+		delete from
+			OrganizationService.sys_button
+		where
+			<if test="ids!=null">
+				id in
+				<foreach collection="ids" item="id" separator="," open="(" close=")">
+		            #{id}
+		        </foreach>
+			</if> 
+	</delete>
+	
+	<!-- 开启菜单权限 -->
+	<update id="openButtonRights" parameterType="pageData">
+		update
+			OrganizationService.sys_button
+		set
+			status = 1
+		where
+			<if test="ids!=null">
+				id in
+				<foreach collection="ids" item="id" separator="," open="(" close=")">
+		            #{id}
+		        </foreach>
+			</if>
+	</update>
+	
+	<!-- 开启菜单权限 -->
+	<update id="closeButtonRights" parameterType="pageData">
+		update
+			OrganizationService.sys_button
+		set
+			status = 0
+		where
+			<if test="ids!=null">
+				id in
+				<foreach collection="ids" item="id" separator="," open="(" close=")">
+		            #{id}
+		        </foreach>
+			</if>
+	</update>
+	
+</mapper>

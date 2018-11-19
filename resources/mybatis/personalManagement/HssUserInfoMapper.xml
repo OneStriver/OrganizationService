@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="HssUserInfoMapper">
+
+	<!--表名 -->
+	<sql id="hlrTableName">
+		hss.hlr
+	</sql>
+	<sql id="voiceCodeTableName">
+		myomc.hssVoiceType
+	</sql>
+	<sql id="deviceTypeTableName">
+		myomc.hssDeviceType
+	</sql>
+
+	<!--统计当前节点下面的所有部队单位 -->
+	<select id="countAllHssTerminalUserInfo" parameterType="pageData" resultType="pageData">
+		select 
+			count(hlr.IMSI) as allTerminalUserInfoCount
+		from 
+			<include refid="hlrTableName"></include>
+		where
+			1=1
+		<if test="cacheUnitInfosList!=null and cacheUnitInfosList.size()>0">
+			and UnitId in
+			<foreach collection="cacheUnitInfosList" item="unitInfo" open="(" separator="," close=")">
+				#{unitInfo.unitId}
+			</foreach>
+		</if>
+	</select>
+	
+	<!--查询当前节点下面的子节点(分页) -->
+	<select id="listTerminalUserInfoPage" parameterType="page" resultType="terminalUserInfoDO">
+		select
+			IMSI as imsi,
+			MDN as mdn,
+			ESN as esn,
+			TMSI as tmsi,
+			RncLoc as rncLoc,
+			GeoLoc as geoLoc,
+			MSprofile as msProfile,
+			MSprofile_extra as msProfoleExtra,
+			MSvocodec as msVocodec,
+			Acount_num as acountNum,
+			currloc as currLoc,
+			tstamp as timestamp,
+			numOfSms as numOfSms,
+			numOfVM as numOfVM,
+			status as status,
+			VLRAddr as vlrAddr,
+			DeviceType as deviceType,
+			UnitId as unitId
+		from
+			<include refid="hlrTableName"></include>
+		where
+			1=1
+		<if test="pageData.cacheUnitInfosList!=null and pageData.cacheUnitInfosList.size()>0">
+			and UnitId in
+			<foreach collection="pageData.cacheUnitInfosList" item="unitInfo" open="(" separator="," close=")">
+				#{unitInfo.unitId}
+			</foreach>
+		</if>
+		ORDER BY tstamp
+		<if test="pageSize!=0">
+			limit #{currentStartIndex},#{pageSize}
+		</if>
+	</select>
+	
+	<!-- 查询myomc语音编码的字典表 -->
+	<select id="getAllHssVoiceType" parameterType="pageData" resultType="hssVoiceType">
+		select
+			id,name,enable
+		from
+			<include refid="voiceCodeTableName"></include>
+	</select>
+	
+	<!-- 查询myomc设备类型的字典表 -->
+	<select id="getAllHssDeviceType" parameterType="pageData" resultType="hssDeviceType">
+		select
+			id,name,enable
+		from
+			<include refid="deviceTypeTableName"></include>
+	</select>
+	
+</mapper>

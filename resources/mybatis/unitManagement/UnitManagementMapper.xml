@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="UnitManagementMapper">
+
+	<!--表名 -->
+	<sql id="tableName">
+		OrganizationService.unit_management
+	</sql>
+
+	<insert id="insertUnitManagementInfo" parameterType="unitManagementInfo">
+		<selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="unitId">
+          SELECT LAST_INSERT_ID()
+      	</selectKey>
+		insert into
+			<include refid="tableName"></include>
+		(
+			unit_id,unit_name,unit_parentid,unit_order,unit_icon
+		) values (
+			#{unitId},#{unitName},#{unitParentId},#{unitOrder},#{unitIcon}
+		)
+	</insert>
+	
+	<update id="updateUnitManagementInfo" parameterType="unitManagementInfo">
+		update
+			<include refid="tableName"></include>
+		set
+			unit_parentid=#{unitParentId},
+			unit_name=#{unitName}
+		where 
+			unit_id = #{unitId}
+	</update>
+	
+	<delete id="deleteUnitManagementInfo" parameterType="pageData">
+		delete from
+			<include refid="tableName"></include>
+		where
+			<if test="unitIds!=null">
+				unit_id in
+				<foreach collection="unitIds" item="unitId" separator="," open="(" close=")">
+		            #{unitId}
+		        </foreach>
+			</if> 
+	</delete>
+	
+	<!--单位管理左侧树显示查询当前节点下面的子节点 -->
+	<select id="getUnitManagementInfoById" parameterType="pageData" resultType="unitManagementInfo">
+		select
+			unit_id as unitId,
+			unit_name as unitName,
+			unit_parentid as unitParentId,
+			unit_order as unitOrder,
+			unit_icon as unitIcon
+		from
+			<include refid="tableName"></include>
+		where 
+			1=1 and unit_id = #{unitId}
+	</select>
+	
+	<!--统计当前节点下面的所有部队单位 -->
+	<select id="countAllUnitManagementInfo" parameterType="pageData" resultType="pageData">
+		select 
+			count(unit_id) as allUnitManagementInfoCount
+		from 
+			<include refid="tableName"></include>
+	</select>
+	
+	<!--统计当前节点下面的所有部队单位 -->
+	<select id="countUnitManagementInfo" parameterType="pageData" resultType="pageData">
+		select 
+			count(unit_id) as unitManagementInfoCount
+		from 
+			<include refid="tableName"></include>
+		where 
+			1=1 and unit_parentid = #{unitParentId}
+	</select>
+	
+	<!--查询当前节点下面的子节点(分页) -->
+	<select id="listPageSubUnitManagementInfo" parameterType="page" resultType="unitManagementInfo">
+		select
+			unit_id as unitId,
+			unit_name as unitName,
+			unit_parentid as unitParentId,
+			unit_order as unitOrder,
+			unit_icon as unitIcon
+		from
+			<include refid="tableName"></include>
+		where 
+			1=1 and unit_parentid = #{pageData.unitParentId}
+			ORDER BY unitOrder
+		<if test="pageSize!=0">
+			limit #{currentStartIndex},#{pageSize}
+		</if>
+	</select>
+	
+	<!--单位管理左侧树显示查询当前节点下面的子节点 -->
+	<select id="listSubUnitManagementInfoByParentId" parameterType="Integer" resultType="unitManagementInfo">
+		select
+			unit_id as unitId,
+			unit_name as unitName,
+			unit_parentid as unitParentId,
+			unit_order as unitOrder,
+			unit_icon as unitIcon
+		from
+			<include refid="tableName"></include>
+		where 
+			1=1 and unit_parentid = #{unitParentId}
+			ORDER BY unitOrder
+	</select>
+	
+</mapper>
